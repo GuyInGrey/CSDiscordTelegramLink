@@ -4,9 +4,10 @@ namespace CSDiscordTelegramLink
 {
     class Program
     {
-        static void Main(string[] args)
+        static void Main()
         {
-
+            _ = new BotManager();
+            Console.Read();
         }
     }
 }
