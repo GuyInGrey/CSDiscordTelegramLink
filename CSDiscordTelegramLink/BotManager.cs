@@ -81,20 +81,28 @@ namespace CSDiscordTelegramLink
             if (arg.Channel.Id != ulong.Parse(Config["discordGeneralChannel"].Value<string>())) { return; }
 
             var user = arg.Author.Username;
-            var cleanContent = Regex.Replace(arg.Content, @"<@!?(\d+)>", m =>
+            var cleanContent = Regex.Replace(arg.Content, @"<:([^:]+):\d+>", m =>
+            {
+                try
+                {
+                    var emoteName = m.Groups[1].ToString();
+                    return $":{emoteName}:";
+                }
+                catch { return ":?:"; }
+            });
+
+            cleanContent = Regex.Replace(cleanContent, @"<@!?(\d+)>", m =>
             {
                 try
                 {
                     var id = ulong.Parse(m.Groups[1].ToString());
                     var user = DiscordClient.GetUser(id);
+                    if (user is null || user.Username is null) { return "@?"; }
                     return "@" + user.Username;
                 }
-                catch
-                {
-                    return "@?";
-                }
+                catch { return "@?"; }
             });
-
+            
             cleanContent = Regex.Replace(cleanContent, @"<#!?(\d+)>", m =>
             {
                 try
@@ -103,11 +111,24 @@ namespace CSDiscordTelegramLink
                     var channel = DiscordClient.GetChannel(id) as SocketTextChannel;
                     return "#" + channel.Name;
                 }
-                catch
-                {
-                    return "#?";
-                }
+                catch { return "#?"; }
             });
+
+            cleanContent =
+                cleanContent.Replace(".", "\\.")
+                .Replace("*", "\\*")
+                .Replace("-", "\\-")
+                .Replace("+", "\\-")
+                .Replace("!", "\\!")
+                .Replace("#", "\\#")
+                .Replace(")", "\\)")
+                .Replace("(", "\\(")
+                .Replace("}", "\\}")
+                .Replace("{", "\\{")
+                .Replace("|", "\\|")
+                .Replace(">", "\\>")
+                .Replace("<", "\\<")
+                .Replace("_", "\\_");
 
             var content = $"*__{user}__* \n{cleanContent}";
 
@@ -158,12 +179,25 @@ namespace CSDiscordTelegramLink
             LastWebhookName = name;
             var hook = WhichWebhook ? DiscordWebhook : DiscordWebhook2;
 
-            var avatars = await TelegramClient.GetUserProfilePhotosAsync(e.Message.From.Id);
-            var avatarPath = await DownloadTelegramFile(avatars.Photos[0][0].FileId);
-            await hook.ModifyWebhookAsync(w =>
+            try
             {
-                w.Image = new Image(avatarPath);
-            });
+                var avatars = await TelegramClient.GetUserProfilePhotosAsync(e.Message.From.Id);
+                var avatarPath = await DownloadTelegramFile(avatars.Photos[0][0].FileId);
+                await hook.ModifyWebhookAsync(w =>
+                {
+                    w.Image = new Image(avatarPath);
+                });
+            }
+            catch
+            {
+                try
+                {
+                    await hook.ModifyWebhookAsync(w =>
+                    {
+                        w.Image = new Image("unknown.png");
+                    });
+                } catch { }
+            }
 
             if (e.Message.Type == Telegram.Bot.Types.Enums.MessageType.Text)
             {
