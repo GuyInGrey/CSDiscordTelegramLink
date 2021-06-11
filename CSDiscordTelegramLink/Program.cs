@@ -7,7 +7,11 @@ namespace CSDiscordTelegramLink
         static void Main()
         {
             _ = new BotManager();
-            Console.Read();
+            while (true)
+            {
+                var text = Console.ReadLine().ToLower();
+                if (text == "exit") { break; }
+            }
         }
     }
 }

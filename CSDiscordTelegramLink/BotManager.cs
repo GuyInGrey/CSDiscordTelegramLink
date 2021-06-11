@@ -41,11 +41,11 @@ namespace CSDiscordTelegramLink
 
             Console.WriteLine("Creating links...");
 
-            var avatarChannel = DiscordClient.GetChannel(ulong.Parse(Config["discordAvatarChannel"].Value<string>())) as SocketTextChannel;
+            var avatarChannelId = ulong.Parse(Config["discordAvatarChannel"].Value<string>());
             var links = Config["links"].Value<JArray>();
             foreach (JObject linkToken in links)
             {
-                var link = Link.FromJson(linkToken, avatarChannel);
+                var link = Link.FromJson(linkToken, avatarChannelId);
                 ActiveLinks.Add(link);
             }
 

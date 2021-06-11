@@ -25,7 +25,8 @@ namespace CSDiscordTelegramLink
 
         private DiscordSocketClient DiscordBot;
         private TelegramBotClient TelegramBot;
-        private SocketTextChannel DiscordAvatarChannel;
+        private ulong DiscordAvatarChannelId;
+        private SocketTextChannel DiscordAvatarChannel => DiscordBot.GetChannel(DiscordAvatarChannelId) as SocketTextChannel;
 
         // False = 1, True = 2
         private bool WhichWebhook;
@@ -40,7 +41,7 @@ namespace CSDiscordTelegramLink
         public SocketTextChannel GetDiscordChannel() => 
             DiscordBot.GetChannel(DiscordChannelId) as SocketTextChannel;
 
-        public static Link FromJson(JObject j, SocketTextChannel avatarChannel)
+        public static Link FromJson(JObject j, ulong avatarChannel)
         {
             return new Link()
             {
@@ -48,7 +49,7 @@ namespace CSDiscordTelegramLink
                 DiscordChannelId = ulong.Parse(j["discordChannelId"].Value<string>()),
                 Webhook1 = j["discordWebhook1"].Value<string>(),
                 Webhook2 = j["discordWebhook2"].Value<string>(),
-                DiscordAvatarChannel = avatarChannel,
+                DiscordAvatarChannelId = avatarChannel,
             };
         }
 
