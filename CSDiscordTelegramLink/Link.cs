@@ -28,6 +28,9 @@ namespace CSDiscordTelegramLink
         private ulong DiscordAvatarChannelId;
         private SocketTextChannel DiscordAvatarChannel => DiscordBot.GetChannel(DiscordAvatarChannelId) as SocketTextChannel;
 
+        private DiscordWebhookClient Hook1;
+        private DiscordWebhookClient Hook2;
+
         // False = 1, True = 2
         private bool WhichWebhook;
         private string LastTelegramName = "";
@@ -57,6 +60,9 @@ namespace CSDiscordTelegramLink
         {
             DiscordBot = discord;
             TelegramBot = telegram;
+
+            Hook1 = new DiscordWebhookClient(Webhook1);
+            Hook2 = new DiscordWebhookClient(Webhook2);
 
             discord.MessageReceived += Discord_MessageReceived;
             telegram.OnMessage += Telegram_OnMessage;
@@ -123,9 +129,7 @@ namespace CSDiscordTelegramLink
 
         private async void Telegram_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
-            //if ((new ChatId(e.Message.Chat.Id)) != TelegramGroup) { return; }
-
-            Console.WriteLine(e.Message.Chat.Id);
+            if (e.Message.Chat.Id != TelegramGroupId) { return; }
 
             if (DiscordBot.LoginState != LoginState.LoggedIn ||
                 DiscordBot.ConnectionState != ConnectionState.Connected ||
@@ -137,8 +141,7 @@ namespace CSDiscordTelegramLink
             // Determine webhook
             if (LastTelegramName != name) { WhichWebhook ^= true; }
             LastTelegramName = name;
-            var hookUrlToUse = WhichWebhook ? Webhook1 : Webhook2;
-            using var hookToUse = new DiscordWebhookClient(hookUrlToUse);
+            var hookToUse = WhichWebhook ? Hook1 : Hook2;
 
             // Determine avatar
             var avatarUrl = "";
@@ -187,6 +190,7 @@ namespace CSDiscordTelegramLink
 
             // Send
             ulong id = 0;
+            text = text == "" ? null : text;
             if (filePath is not null)
             {
                 id = await hookToUse.SendFileAsync(
@@ -195,7 +199,7 @@ namespace CSDiscordTelegramLink
                     avatarUrl: avatarUrl,
                     filePath: filePath);
             }
-            else
+            else if (text is not null)
             {
                 id = await hookToUse.SendMessageAsync(
                     text: text,
