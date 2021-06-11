@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -19,18 +20,22 @@ namespace CSDiscordTelegramLink
 {
     public class BotManager
     {
+        public JObject Config;
+
         public DiscordSocketClient DiscordClient;
         public DiscordWebhookClient DiscordWebhook;
         public DiscordWebhookClient DiscordWebhook2;
         public bool WhichWebhook = true;
         public string LastWebhookName = "";
-        public ChatId TelegramGroup;
-
-        public long LastFileIndex = 0;
+        public ulong GuildID;
+        public ulong ChannelID;
 
         public TelegramBotClient TelegramClient;
+        public ChatId TelegramGroup;
+        public long LastFileIndex = 0;
 
-        public JObject Config;
+        // (Telegram, Discord)
+        public List<(int, ulong)> MessageHistory = new List<(int, ulong)>();
 
         public BotManager()
         {
@@ -50,6 +55,8 @@ namespace CSDiscordTelegramLink
             SetupDiscordBot().GetAwaiter().GetResult();
 
             TelegramGroup = new ChatId(long.Parse(Config["telegramGroupID"].Value<string>()));
+            GuildID = ulong.Parse(Config["discordGuildId"].Value<string>());
+            ChannelID = ulong.Parse(Config["discordGeneralChannel"].Value<string>());
             Console.WriteLine("Ready.");
         }
 
@@ -77,8 +84,8 @@ namespace CSDiscordTelegramLink
 
         private async Task DiscordClient_MessageReceived(SocketMessage arg)
         {
-            if (arg.Author.IsBot) { return; }
-            if (arg.Channel.Id != ulong.Parse(Config["discordGeneralChannel"].Value<string>())) { return; }
+            if (arg.Author.IsBot || arg.Source == MessageSource.System) { return; }
+            if (arg.Channel.Id != ChannelID) { return; }
 
             var user = arg.Author.Username;
             var cleanContent = Regex.Replace(arg.Content, @"<:([^:]+):\d+>", m =>
@@ -134,7 +141,8 @@ namespace CSDiscordTelegramLink
 
             if (content is not null && content != "")
             {
-                await TelegramClient.SendTextMessageAsync(TelegramGroup, content, Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+                var msg = await TelegramClient.SendTextMessageAsync(TelegramGroup, content, Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+                MessageHistory.Add((msg.MessageId, arg.Id));
             }
 
             foreach (var a in arg.Attachments)
@@ -163,7 +171,8 @@ namespace CSDiscordTelegramLink
 
         private async void OnTelegramMessage(object sender, MessageEventArgs e)
         {
-            Console.WriteLine(e.Message.Chat.Id);
+            //if ((new ChatId(e.Message.Chat.Id)) != TelegramGroup) { return; }
+
             if (DiscordClient.LoginState != LoginState.LoggedIn || 
                 DiscordClient.ConnectionState != ConnectionState.Connected ||
                 DiscordWebhook is null ||
@@ -179,56 +188,89 @@ namespace CSDiscordTelegramLink
             LastWebhookName = name;
             var hook = WhichWebhook ? DiscordWebhook : DiscordWebhook2;
 
-            try
+            var avatars = (await TelegramClient.GetUserProfilePhotosAsync(e.Message.From.Id))?.Photos;
+            if (avatars.Length == 0 || avatars[0].Length == 0)
             {
-                var avatars = await TelegramClient.GetUserProfilePhotosAsync(e.Message.From.Id);
-                var avatarPath = await DownloadTelegramFile(avatars.Photos[0][0].FileId);
+                await hook.ModifyWebhookAsync(w =>
+                {
+                    w.Image = new Image("unknown.png");
+                });
+            }
+            else
+            {
+                var avatarPath = await DownloadTelegramFile(avatars[0][0].FileId);
                 await hook.ModifyWebhookAsync(w =>
                 {
                     w.Image = new Image(avatarPath);
                 });
             }
-            catch
+
+            var replyId = e.Message.ReplyToMessage?.MessageId;
+
+            var text = (e.Message.Text is object && e.Message.Text != "") ? e.Message.Text :
+                (e.Message.Caption is object && e.Message.Caption != "") ? e.Message.Caption : "";
+
+            if (replyId != default) 
             {
-                try
+                var linked = MessageHistory.FirstOrDefault(m => m.Item1 == replyId);
+                if (linked != default)
                 {
-                    await hook.ModifyWebhookAsync(w =>
-                    {
-                        w.Image = new Image("unknown.png");
-                    });
-                } catch { }
+                    var url = $"https://discord.com/channels/{GuildID}/{ChannelID}/{linked.Item2}";
+                    text = $"[Reply <:cursor:852946682509262899>]({url})\n{text}";
+                }
             }
+
+            ulong id = 0;
 
             if (e.Message.Type == Telegram.Bot.Types.Enums.MessageType.Text)
             {
-                await hook.SendMessageAsync(
-                    e.Message.Text,
+                id = await hook.SendMessageAsync(
+                    text,
                     username: name);
             }
             else if (e.Message.Type == Telegram.Bot.Types.Enums.MessageType.Photo)
             {
                 var file = await DownloadTelegramFile(e.Message.Photo.Last().FileId);
-                await hook.SendFileAsync(
+                id = await hook.SendFileAsync(
                     filePath: file,
-                    text: e.Message.Caption,
+                    text: text,
                     username: name);
             }
             else if (e.Message.Type == Telegram.Bot.Types.Enums.MessageType.Document)
             {
                 var file = await DownloadTelegramFile(e.Message.Document.FileId);
-                await hook.SendFileAsync(
+                id = await hook.SendFileAsync(
                     filePath: file,
-                    text: e.Message.Caption,
+                    text: text,
                     username: name);
+            }
+            else if (e.Message.Type == Telegram.Bot.Types.Enums.MessageType.Sticker)
+            {
+                id = await hook.SendMessageAsync(
+                    text: $"{e.Message.Sticker.Emoji}\n{text}",
+                    username: name);
+            }
+            else if (e.Message.Type == Telegram.Bot.Types.Enums.MessageType.Audio)
+            {
+                var file = await DownloadTelegramFile(e.Message.Audio.FileId);
+                id = await hook.SendFileAsync(
+                    filePath: file,
+                    text: text,
+                    username: name);
+            }
+
+            if (id != 0)
+            {
+                MessageHistory.Add((e.Message.MessageId, id));
             }
         }
 
         public async Task<string> DownloadTelegramFile(string fileId)
         {
-            LastFileIndex++;
             var file = await TelegramClient.GetFileAsync(fileId);
             var extension = Path.GetExtension(file.FilePath);
 
+            LastFileIndex++;
             var path = @$"temp\{LastFileIndex}{extension}";
 
             using var stream = new FileStream(path, FileMode.OpenOrCreate);
