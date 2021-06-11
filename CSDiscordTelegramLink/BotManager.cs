@@ -24,7 +24,7 @@ namespace CSDiscordTelegramLink
         {
             // Load config
             Console.WriteLine("Loading configuration...");
-            Config = JObject.Parse(System.IO.File.ReadAllText(@"C:\ISLE\config.json"));
+            Config = JObject.Parse(File.ReadAllText("config.json"));
 
             // Reset temp files
             Console.WriteLine("Resetting temp directory...");
@@ -42,10 +42,11 @@ namespace CSDiscordTelegramLink
             Console.WriteLine("Creating links...");
 
             var avatarChannelId = ulong.Parse(Config["discordAvatarChannel"].Value<string>());
+            var messageHistoryFile = Config["messageHistoryFile"].Value<string>();
             var links = Config["links"].Value<JArray>();
             foreach (JObject linkToken in links)
             {
-                var link = Link.FromJson(linkToken, avatarChannelId);
+                var link = Link.FromJson(linkToken, avatarChannelId, messageHistoryFile);
                 ActiveLinks.Add(link);
             }
 
@@ -67,6 +68,7 @@ namespace CSDiscordTelegramLink
             await DiscordClient.LoginAsync(TokenType.Bot, token);
 
             await DiscordClient.StartAsync();
+            await DiscordClient.SetGameAsync(Config["discordStatus"].Value<string>());
             Console.WriteLine("Discord bot started.");
         }
 

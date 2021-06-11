@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "CSDiscordTelegramLink": {
+      "commandName": "Project",
+      "commandLineArgs": "C:\\ISLE\\"
+    }
+  }
+}

@@ -27,6 +27,7 @@ namespace CSDiscordTelegramLink
         private TelegramBotClient TelegramBot;
         private ulong DiscordAvatarChannelId;
         private SocketTextChannel DiscordAvatarChannel => DiscordBot.GetChannel(DiscordAvatarChannelId) as SocketTextChannel;
+        private static string MessageHistoryFilePath;
 
         private DiscordWebhookClient Hook1;
         private DiscordWebhookClient Hook2;
@@ -36,7 +37,11 @@ namespace CSDiscordTelegramLink
         private string LastTelegramName = "";
 
         // (Telegram, Discord)
-        private static List<(int, ulong)> MessageHistory = new();
+        private static List<(int, ulong)> GetMessageHistory() =>
+            System.IO.File.ReadAllText(MessageHistoryFilePath)
+            .Trim().Split("\n").Select(m => m.Split(","))
+            .Select(m => (int.Parse(m[0]), ulong.Parse(m[1])))
+            .ToList();
 
         public ChatId GetTelegramGroup() => 
             new(TelegramGroupId);
@@ -44,8 +49,14 @@ namespace CSDiscordTelegramLink
         public SocketTextChannel GetDiscordChannel() => 
             DiscordBot.GetChannel(DiscordChannelId) as SocketTextChannel;
 
-        public static Link FromJson(JObject j, ulong avatarChannel)
+        public static Link FromJson(JObject j, ulong avatarChannel, string messageHistoryFile)
         {
+            MessageHistoryFilePath = messageHistoryFile;
+            if (!System.IO.File.Exists(MessageHistoryFilePath))
+            {
+                System.IO.File.Create(MessageHistoryFilePath).Dispose();
+            }
+
             return new Link()
             {
                 TelegramGroupId = long.Parse(j["telegramGroupId"].Value<string>()),
@@ -112,7 +123,7 @@ namespace CSDiscordTelegramLink
             cleanContent = $"*__{user}__* \n{cleanContent}";
 
             var msg = await TelegramBot.SendTextMessageAsync(GetTelegramGroup(), cleanContent, Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
-            MessageHistory.Add((msg.MessageId, arg.Id));
+            System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{msg.MessageId},{arg.Id}");
 
             foreach (var a in arg.Attachments)
             {
@@ -164,7 +175,8 @@ namespace CSDiscordTelegramLink
 
             if (replyId != default)
             {
-                var linked = MessageHistory.FirstOrDefault(m => m.Item1 == replyId);
+                var history = GetMessageHistory();
+                var linked = history.FirstOrDefault(m => m.Item1 == replyId);
                 if (linked != default)
                 {
                     var url = $"https://discord.com/channels/{GetDiscordChannel().Guild.Id}/{DiscordChannelId}/{linked.Item2}";
@@ -207,7 +219,7 @@ namespace CSDiscordTelegramLink
                     avatarUrl: avatarUrl);
             }
 
-            MessageHistory.Add((e.Message.MessageId, id));
+            System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{e.Message.MessageId},{id}");
         }
     }
 }
