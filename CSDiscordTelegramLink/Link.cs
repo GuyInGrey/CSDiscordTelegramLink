@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Discord;
+using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
 
@@ -77,6 +78,8 @@ namespace CSDiscordTelegramLink
 
             discord.MessageReceived += Discord_MessageReceived;
             telegram.OnMessage += Telegram_OnMessage;
+
+            discord.MessageUpdated += Discord_MessageUpdated;
         }
 
         private async Task Discord_MessageReceived(SocketMessage arg)
@@ -100,41 +103,7 @@ namespace CSDiscordTelegramLink
             }
 
             // Determine content
-            var user = arg.Author.Username;
-            var cleanContent = arg.Content;
-
-            cleanContent = Regex.Replace(arg.Content, @"<:([^:]+):\d+>", m =>
-            {
-                if (m is null || m.Groups.Count < 2) { return ":?"; }
-                return $":{m.Groups[1]}:";
-            });
-
-            cleanContent = Regex.Replace(cleanContent, @"<@!?(\d+)>", m =>
-            {
-                if (m is null || m.Groups.Count < 2) { return "@?"; }
-                if (!ulong.TryParse(m.Groups[1].ToString(), out var id)) { return "@?"; }
-                var user = DiscordBot.GetUser(id);
-                if (user is null || user.Username is null) { return "@?"; }
-                return "@" + user.Username;
-            });
-
-            cleanContent = Regex.Replace(cleanContent, @"<#!?(\d+)>", m =>
-            {
-                if (m is null || m.Groups.Count < 2) { return "#?"; }
-                if (!ulong.TryParse(m.Groups[1].ToString(), out var id)) { return "#?"; }
-                var channel = DiscordBot.GetChannel(id);
-                if (channel is null) { return "#?"; }
-                if (channel is not SocketTextChannel textChannel || textChannel.Name is null) { return "#?"; }
-                return textChannel.Name;
-            });
-
-            cleanContent = Regex.Replace(cleanContent, @"([.*\-+!#(){}|><_=])", m =>
-            {
-                if (m is null || m.Groups.Count < 2) { return ""; }
-                return $"\\{m.Groups[1]}";
-            });
-
-            cleanContent = $"*__{user}__* \n{cleanContent}";
+            var cleanContent = DiscordBot.CleanDiscordMessage(arg);
 
             var msg = await TelegramBot.SendTextMessageAsync(GetTelegramGroup(), cleanContent, Telegram.Bot.Types.Enums.ParseMode.MarkdownV2, replyToMessageId: replyToMessageId);
             System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{msg.MessageId},{arg.Id}");
@@ -196,8 +165,8 @@ namespace CSDiscordTelegramLink
                     var url = $"https://discord.com/channels/{GetDiscordChannel().Guild.Id}/{DiscordChannelId}/{linked.Item2}";
 
                     var linkedMessage = await GetDiscordChannel()?.GetMessageAsync(linked.Item2);
-                    if (linkedMessage is null || 
-                        linkedMessage.Content is null || 
+                    if (linkedMessage is null ||
+                        linkedMessage.Content is null ||
                         linkedMessage.Content == "")
                     {
                         text = $"[Reply <:cursor:852946682509262899>]({url})\n{text}";
@@ -211,6 +180,8 @@ namespace CSDiscordTelegramLink
                             lines.RemoveAt(0);
                             content = string.Join("\n", lines);
                         }
+
+                        content = content.Replace("\n", "").Replace("\r", "");
 
                         content = content.Length > 100 ?
                             content.Substring(0, 97) + "..." :
@@ -256,6 +227,28 @@ namespace CSDiscordTelegramLink
             }
 
             System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{e.Message.MessageId},{id}");
+        }
+
+        private async Task Discord_MessageUpdated(Cacheable<IMessage, ulong> arg1, SocketMessage msg, ISocketMessageChannel arg2)
+        {
+            if (msg.Author.IsBot) { return; }
+            var history = GetMessageHistory();
+            var linked = history.FirstOrDefault(m => m.Item2 == arg1.Id).Item1;
+            if (linked == default)
+            {
+                return;
+            }
+
+            var text = DiscordBot.CleanDiscordMessage(msg);
+
+            try
+            {
+                await TelegramBot.EditMessageTextAsync(
+                    chatId: new ChatId(TelegramGroupId),
+                    messageId: linked,
+                    text: text,
+                    parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+            } catch { }
         }
     }
 }
