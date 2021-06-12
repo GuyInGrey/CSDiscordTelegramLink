@@ -7,7 +7,26 @@ namespace CSDiscordTelegramLink
     {
         static void Main(string[] args)
         {
+            //ConsoleColor.
+
             Extensions.Log("Hello, world!");
+            Extensions.Log(@"Color tests:
+\bwhite*\cblack*Black\bblack*
+\cblue*Blue
+\ccyan*Cyan
+\cdarkblue*DarkBlue
+\cdarkcyan*DarkCyan
+\cdarkgray*DarkGray
+\cdarkgreen*DarkGreen
+\cdarkmagenta*DarkMagenta
+\cdarkred*DarkRed
+\cdarkyellow*DarkYellow
+\cgray*Gray
+\cgreen*Green
+\cmagenta*Magenta
+\cred*Red
+\cwhite*White
+\cyellow*Yellow");
             if (args.Length <= 0 || !Directory.Exists(args[0]))
             {
                 if (args.Length > 0)

@@ -53,7 +53,7 @@ namespace CSDiscordTelegramLink
             Extensions.Log("Activating links...");
             ActiveLinks.ForEach(l => l.Listen(DiscordClient, TelegramClient));
 
-            Extensions.Log("Running!");
+            Extensions.Log("\\cgreen*Running!");
         }
 
         public async Task SetupDiscordBot()
@@ -66,11 +66,12 @@ namespace CSDiscordTelegramLink
 
             DiscordClient.Log += (msg) =>
             {
-                Extensions.Log("[Discord] " + msg.Message);
+                var prefix = @"\cblue*[Discord]\cwhite* ";
+                Extensions.Log(prefix + msg.Message);
                 if (msg.Exception is not null)
                 {
-                    Extensions.Log($"[Discord] {msg.Exception.Message}");
-                    Extensions.Log($"[Discord] {msg.Exception.StackTrace}");
+                    Extensions.Log($"{prefix}\\cred*{msg.Exception.Message}");
+                    Extensions.Log($"{prefix}\\cred*{msg.Exception.StackTrace}");
                 }
 
                 return Task.CompletedTask;
