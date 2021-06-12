@@ -7,19 +7,32 @@ namespace CSDiscordTelegramLink
     {
         static void Main(string[] args)
         {
+            Extensions.Log("Hello, world!");
             if (args.Length <= 0 || !Directory.Exists(args[0]))
             {
-                Console.WriteLine("Invalid arguments.");
+                if (args.Length > 0)
+                {
+                    Extensions.Log(args[0]);
+                }
+
+                Extensions.Log(Directory.GetCurrentDirectory());
+                Extensions.Log("Invalid arguments.");
                 return;
             }
 
             Directory.SetCurrentDirectory(args[0]);
 
-            _ = new BotManager();
+            var bot = new BotManager();
             while (true)
             {
                 var text = Console.ReadLine().ToLower();
-                if (text == "exit") { break; }
+                if (text == "exit")
+                {
+                    Extensions.Log("Exiting...");
+                    bot.Exit();
+                    Extensions.Log("Goodbye!");
+                    break;
+                }
             }
         }
     }

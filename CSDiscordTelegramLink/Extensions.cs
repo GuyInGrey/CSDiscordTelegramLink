@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Threading.Tasks;
 
 using Telegram.Bot;
@@ -19,6 +20,11 @@ namespace CSDiscordTelegramLink
             using var stream = new FileStream(path, FileMode.OpenOrCreate);
             await telegram.DownloadFileAsync(file.FilePath, stream);
             return path;
+        }
+
+        public static void Log(object msg)
+        {
+            Console.WriteLine($"[{DateTime.Now}] {msg}");
         }
     }
 }

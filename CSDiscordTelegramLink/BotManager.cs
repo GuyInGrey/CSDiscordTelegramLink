@@ -23,11 +23,11 @@ namespace CSDiscordTelegramLink
         public BotManager()
         {
             // Load config
-            Console.WriteLine("Loading configuration...");
+            Extensions.Log("Loading configuration...");
             Config = JObject.Parse(File.ReadAllText("config.json"));
 
             // Reset temp files
-            Console.WriteLine("Resetting temp directory...");
+            Extensions.Log("Resetting temp directory...");
             if (Directory.Exists("temp"))
             {
                 Directory.Delete("temp", true);
@@ -35,11 +35,11 @@ namespace CSDiscordTelegramLink
             Directory.CreateDirectory("temp");
 
             // Startup
-            Console.WriteLine("Starting up...");
+            Extensions.Log("Starting up...");
             SetupTelegramBot();
             SetupDiscordBot().GetAwaiter().GetResult();
 
-            Console.WriteLine("Creating links...");
+            Extensions.Log("Creating links...");
 
             var avatarChannelId = ulong.Parse(Config["discordAvatarChannel"].Value<string>());
             var messageHistoryFile = Config["messageHistoryFile"].Value<string>();
@@ -50,10 +50,10 @@ namespace CSDiscordTelegramLink
                 ActiveLinks.Add(link);
             }
 
-            Console.WriteLine("Activating links...");
+            Extensions.Log("Activating links...");
             ActiveLinks.ForEach(l => l.Listen(DiscordClient, TelegramClient));
 
-            Console.WriteLine("Running!");
+            Extensions.Log("Running!");
         }
 
         public async Task SetupDiscordBot()
@@ -68,8 +68,13 @@ namespace CSDiscordTelegramLink
             await DiscordClient.LoginAsync(TokenType.Bot, token);
 
             await DiscordClient.StartAsync();
-            await DiscordClient.SetGameAsync(Config["discordStatus"].Value<string>());
-            Console.WriteLine("Discord bot started.");
+
+            var status = Config["discordStatus"].Value<string>();
+            if (status != "")
+            {
+                await DiscordClient.SetGameAsync(status);
+            }
+            Extensions.Log("Discord bot started.");
         }
 
         public void SetupTelegramBot()
@@ -77,7 +82,12 @@ namespace CSDiscordTelegramLink
             var token = Config["telegramToken"].Value<string>();
             TelegramClient = new TelegramBotClient(token);
             TelegramClient.StartReceiving();
-            Console.WriteLine("Telegram bot started.");
+            Extensions.Log("Telegram bot started.");
+        }
+
+        public void Exit()
+        {
+            DiscordClient.StopAsync();
         }
     }
 }

@@ -39,7 +39,7 @@ namespace CSDiscordTelegramLink
         // (Telegram, Discord)
         private static List<(int, ulong)> GetMessageHistory() =>
             System.IO.File.ReadAllText(MessageHistoryFilePath)
-            .Trim().Split("\n").Select(m => m.Split(","))
+            .Trim().Split("\n", StringSplitOptions.RemoveEmptyEntries).Select(m => m.Split(","))
             .Select(m => (int.Parse(m[0]), ulong.Parse(m[1])))
             .ToList();
 
@@ -86,6 +86,20 @@ namespace CSDiscordTelegramLink
                 arg.Channel.Id != DiscordChannelId) 
             { return; }
 
+            // Determine reply
+            var replyToMessageId = 0;
+            if (arg.Reference is not null && arg.Reference.MessageId.IsSpecified)
+            {
+                var id = arg.Reference.MessageId.Value;
+                var history = GetMessageHistory();
+                var linked = history.FirstOrDefault(m => m.Item2 == id);
+                if (linked != default)
+                {
+                    replyToMessageId = linked.Item1;
+                }
+            }
+
+            // Determine content
             var user = arg.Author.Username;
             var cleanContent = arg.Content;
 
@@ -122,7 +136,7 @@ namespace CSDiscordTelegramLink
 
             cleanContent = $"*__{user}__* \n{cleanContent}";
 
-            var msg = await TelegramBot.SendTextMessageAsync(GetTelegramGroup(), cleanContent, Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
+            var msg = await TelegramBot.SendTextMessageAsync(GetTelegramGroup(), cleanContent, Telegram.Bot.Types.Enums.ParseMode.MarkdownV2, replyToMessageId: replyToMessageId);
             System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{msg.MessageId},{arg.Id}");
 
             foreach (var a in arg.Attachments)
