@@ -194,7 +194,29 @@ namespace CSDiscordTelegramLink
                 if (linked != default)
                 {
                     var url = $"https://discord.com/channels/{GetDiscordChannel().Guild.Id}/{DiscordChannelId}/{linked.Item2}";
-                    text = $"[Reply <:cursor:852946682509262899>]({url})\n{text}";
+
+                    var linkedMessage = await GetDiscordChannel()?.GetMessageAsync(linked.Item2);
+                    if (linkedMessage is null || 
+                        linkedMessage.Content is null || 
+                        linkedMessage.Content == "")
+                    {
+                        text = $"[Reply <:cursor:852946682509262899>]({url})\n{text}";
+                    }
+                    else
+                    {
+                        var content = linkedMessage.Content;
+                        if (content.StartsWith("[Reply") || content.StartsWith("> ["))
+                        {
+                            var lines = content.Split('\n').ToList();
+                            lines.RemoveAt(0);
+                            content = string.Join("\n", lines);
+                        }
+
+                        content = content.Length > 50 ?
+                            content.Substring(0, 47) + "..." :
+                            content;
+                        text = $"> [{content}]({url})\n{text}";
+                    }
                 }
             }
             text = e.Message.Sticker is not null ? $"{e.Message.Sticker.Emoji}\n{text}" : text;
