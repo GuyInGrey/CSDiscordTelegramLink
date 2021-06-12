@@ -128,7 +128,7 @@ namespace CSDiscordTelegramLink
                 return textChannel.Name;
             });
 
-            cleanContent = Regex.Replace(cleanContent, @"([.*\-+!#(){}|><_])", m =>
+            cleanContent = Regex.Replace(cleanContent, @"([.*\-+!#(){}|><_=])", m =>
             {
                 if (m is null || m.Groups.Count < 2) { return ""; }
                 return $"\\{m.Groups[1]}";
@@ -212,8 +212,8 @@ namespace CSDiscordTelegramLink
                             content = string.Join("\n", lines);
                         }
 
-                        content = content.Length > 50 ?
-                            content.Substring(0, 47) + "..." :
+                        content = content.Length > 100 ?
+                            content.Substring(0, 97) + "..." :
                             content;
                         text = $"> [{content}]({url})\n{text}";
                     }
