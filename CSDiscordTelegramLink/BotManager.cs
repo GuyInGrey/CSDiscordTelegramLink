@@ -52,8 +52,6 @@ namespace CSDiscordTelegramLink
 
             Extensions.Log("Activating links...");
             ActiveLinks.ForEach(l => l.Listen(DiscordClient, TelegramClient));
-
-            Extensions.Log("\\cgreen*Running!");
         }
 
         public async Task SetupDiscordBot()
@@ -75,6 +73,12 @@ namespace CSDiscordTelegramLink
                 }
 
                 return Task.CompletedTask;
+            };
+            DiscordClient.Ready += async () =>
+            {
+                Extensions.Log("\\cgreen*Running!");
+
+                Extensions.Log(await Status());
             };
 
             var token = Config["discordToken"].Value<string>();
@@ -98,9 +102,29 @@ namespace CSDiscordTelegramLink
             Extensions.Log("Telegram bot started.");
         }
 
-        public void Exit()
+        public async Task Exit()
         {
-            DiscordClient.StopAsync();
+            await DiscordClient.StopAsync();
+        }
+
+        public async Task<string> Status()
+        {
+            var linkText = "";
+            foreach (var l in ActiveLinks)
+            {
+                linkText += $"#{l.GetDiscordChannel()?.Name} ({l.DiscordChannelId}) <-> " +
+                    $"{(await TelegramClient.GetChatAsync(l.GetTelegramGroup()))?.Title} ({l.TelegramGroupId})\n";
+            }
+            linkText = linkText.Trim();
+
+            var statusMessage = @$"
+||------------------------------------------------------------------------------------||
+\cblue*Discord Status:  \cwhite*{DiscordClient.ConnectionState} / {DiscordClient.LoginState}
+\ccyan*Telegram Status: \cwhite*(IsReceiving: {TelegramClient.IsReceiving}) / (ApiTest: {await TelegramClient.TestApiAsync()})
+\ccyan*Links:\cwhite*
+{linkText}
+||------------------------------------------------------------------------------------||";
+            return statusMessage;
         }
     }
 }
