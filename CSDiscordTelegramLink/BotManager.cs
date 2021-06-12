@@ -64,6 +64,18 @@ namespace CSDiscordTelegramLink
             };
             DiscordClient = new DiscordSocketClient(discordConfig);
 
+            DiscordClient.Log += (msg) =>
+            {
+                Extensions.Log("[Discord] " + msg.Message);
+                if (msg.Exception is not null)
+                {
+                    Extensions.Log($"[Discord] {msg.Exception.Message}");
+                    Extensions.Log($"[Discord] {msg.Exception.StackTrace}");
+                }
+
+                return Task.CompletedTask;
+            };
+
             var token = Config["discordToken"].Value<string>();
             await DiscordClient.LoginAsync(TokenType.Bot, token);
 
