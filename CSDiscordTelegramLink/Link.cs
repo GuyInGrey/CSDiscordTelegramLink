@@ -26,7 +26,6 @@ namespace CSDiscordTelegramLink
         private TelegramBotClient TelegramBot;
         private ulong DiscordAvatarChannelId;
         private SocketTextChannel DiscordAvatarChannel => DiscordBot.GetChannel(DiscordAvatarChannelId) as SocketTextChannel;
-        private static string MessageHistoryFilePath;
 
         private DiscordWebhookClient Hook1;
         private DiscordWebhookClient Hook2;
@@ -35,27 +34,14 @@ namespace CSDiscordTelegramLink
         private bool WhichWebhook;
         private string LastTelegramName = "";
 
-        // (Telegram, Discord)
-        private static List<(int, ulong)> GetMessageHistory() =>
-            System.IO.File.ReadAllText(MessageHistoryFilePath)
-            .Trim().Split("\n", StringSplitOptions.RemoveEmptyEntries).Select(m => m.Split(","))
-            .Select(m => (int.Parse(m[0]), ulong.Parse(m[1])))
-            .ToList();
-
         public ChatId GetTelegramGroup() => 
             new(TelegramGroupId);
 
         public SocketTextChannel GetDiscordChannel() => 
             DiscordBot.GetChannel(DiscordChannelId) as SocketTextChannel;
 
-        public static Link FromJson(JObject j, ulong avatarChannel, string messageHistoryFile)
+        public static Link FromJson(JObject j, ulong avatarChannel)
         {
-            MessageHistoryFilePath = messageHistoryFile;
-            if (!System.IO.File.Exists(MessageHistoryFilePath))
-            {
-                System.IO.File.Create(MessageHistoryFilePath).Dispose();
-            }
-
             return new Link()
             {
                 TelegramGroupId = long.Parse(j["telegramGroupId"].Value<string>()),
@@ -76,8 +62,6 @@ namespace CSDiscordTelegramLink
 
             discord.MessageReceived += Discord_MessageReceived;
             telegram.OnMessage += Telegram_OnMessage;
-
-            discord.MessageUpdated += Discord_MessageUpdated;
         }
 
         private async Task Discord_MessageReceived(SocketMessage arg)
@@ -91,12 +75,10 @@ namespace CSDiscordTelegramLink
             var replyToMessageId = 0;
             if (arg.Reference is not null && arg.Reference.MessageId.IsSpecified)
             {
-                var id = arg.Reference.MessageId.Value;
-                var history = GetMessageHistory();
-                var linked = history.FirstOrDefault(m => m.Item2 == id);
-                if (linked != default)
+                var val = ReplyManager.GetFromDiscord(arg.Reference.MessageId.Value);
+                if (val.IsSpecified)
                 {
-                    replyToMessageId = linked.Item1;
+                    replyToMessageId = val.Value.TelegramMessageId;
                 }
             }
 
@@ -108,7 +90,7 @@ namespace CSDiscordTelegramLink
                 text: cleanContent, 
                 parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2,
                 replyToMessageId: replyToMessageId);
-            System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{msg.MessageId},{arg.Id}");
+            ReplyManager.Add(msg.Chat.Id, msg.MessageId, arg.Id, DTMessage.DTOrigin.Discord);
 
             foreach (var a in arg.Attachments)
             {
@@ -160,13 +142,13 @@ namespace CSDiscordTelegramLink
 
             if (replyId != default)
             {
-                var history = GetMessageHistory();
-                var linked = history.FirstOrDefault(m => m.Item1 == replyId);
-                if (linked != default)
+                var val = ReplyManager.GetFromTelegram(e.Message.Chat.Id, (int)replyId);
+                if (val.IsSpecified)
                 {
-                    var url = $"https://discord.com/channels/{GetDiscordChannel().Guild.Id}/{DiscordChannelId}/{linked.Item2}";
+                    var linked = val.Value.DiscordMessageId;
+                    var url = $"https://discord.com/channels/{GetDiscordChannel().Guild.Id}/{DiscordChannelId}/{linked}";
 
-                    var linkedMessage = await GetDiscordChannel()?.GetMessageAsync(linked.Item2);
+                    var linkedMessage = await GetDiscordChannel()?.GetMessageAsync(linked);
                     if (linkedMessage is null ||
                         linkedMessage.Content is null ||
                         linkedMessage.Content == "")
@@ -233,29 +215,7 @@ namespace CSDiscordTelegramLink
                 return;
             }
 
-            System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{e.Message.MessageId},{id}");
-        }
-
-        private async Task Discord_MessageUpdated(Cacheable<IMessage, ulong> arg1, SocketMessage msg, ISocketMessageChannel arg2)
-        {
-            if (msg.Author.IsBot) { return; }
-            var history = GetMessageHistory();
-            var linked = history.FirstOrDefault(m => m.Item2 == arg1.Id).Item1;
-            if (linked == default)
-            {
-                return;
-            }
-
-            var text = DiscordBot.CleanDiscordMessage(msg);
-
-            try
-            {
-                await TelegramBot.EditMessageTextAsync(
-                    chatId: new ChatId(TelegramGroupId),
-                    messageId: linked,
-                    text: text,
-                    parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2);
-            } catch { }
+            ReplyManager.Add(e.Message.Chat.Id, e.Message.MessageId, id, DTMessage.DTOrigin.Telegram);
         }
     }
 }

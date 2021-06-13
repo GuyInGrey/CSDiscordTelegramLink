@@ -14,15 +14,17 @@ namespace CSDiscordTelegramLink
 
         static void Main(string[] args)
         {
-            Extensions.Log("Hello, world!");
             if (args.Length <= 0 || !Directory.Exists(args[0]))
             {
-                Extensions.Log("Invalid path: " + (args.Length > 0 ? args[0] : ""));
+                Logger.Log("Invalid path: " + (args.Length > 0 ? args[0] : ""));
                 return;
             }
 
             Directory.SetCurrentDirectory(args[0]);
-            Extensions.LogDebug();
+            Logger.Init();
+
+            Logger.Log("Hello, world!");
+            Logger.LogDebug();
 
             var bot = new BotManager();
             while (true)
@@ -30,18 +32,18 @@ namespace CSDiscordTelegramLink
                 var text = Console.ReadLine().Trim().ToLower();
                 if (text == "exit")
                 {
-                    Extensions.Log("Exiting...");
+                    Logger.Log("Exiting...");
                     bot.Exit().GetAwaiter().GetResult();
-                    Extensions.Log("Goodbye!");
+                    Logger.Log("Goodbye!");
                     break;
                 }
                 else if (text == "status")
                 {
-                    Extensions.Log(bot.Status().GetAwaiter().GetResult());
+                    Logger.Log(bot.Status().GetAwaiter().GetResult());
                 }
                 else
                 {
-                    Extensions.Log("Unknown command. The only ones are `exit` and `status` at the moment.");
+                    Logger.Log("Unknown command. The only ones are `exit` and `status` at the moment.");
                 }
             }
         }

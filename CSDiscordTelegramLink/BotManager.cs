@@ -23,27 +23,27 @@ namespace CSDiscordTelegramLink
 
         public BotManager()
         {
-            Extensions.Log("Starting up...");
+            Logger.Log("Starting up...");
 
             // Load config
-            Extensions.Log("Loading configuration...");
+            Logger.Log("Loading configuration...");
             Config = JObject.Parse(File.ReadAllText("config.json"));
-            Extensions.Log("Configuration loaded.");
+            Logger.Log("Configuration loaded.");
 
             // Reset temp files
-            Extensions.Log("Resetting temp directory...");
+            Logger.Log("Resetting temp directory...");
             if (Directory.Exists("temp"))
             {
                 Directory.Delete("temp", true);
             }
             Directory.CreateDirectory("temp");
-            Extensions.Log("Temp directory reset.");
+            Logger.Log("Temp directory reset.");
 
             // Database connection
             var dbLoaded = ReplyManager.Init(DatabaseCredentials.FromJson(Config["database"] as JObject));
             if (!dbLoaded)
             {
-                Extensions.Log("Failed to connect to database, aborting.");
+                Logger.Log("Failed to connect to database, aborting.");
                 Environment.Exit(1);
             }
 
@@ -51,18 +51,17 @@ namespace CSDiscordTelegramLink
             SetupTelegramBot();
             SetupDiscordBot().GetAwaiter().GetResult();
 
-            Extensions.Log("Creating links...");
+            Logger.Log("Creating links...");
 
             var avatarChannelId = ulong.Parse(Config["discordAvatarChannel"].Value<string>());
-            var messageHistoryFile = Config["messageHistoryFile"].Value<string>();
             var links = Config["links"].Value<JArray>();
             foreach (JObject linkToken in links)
             {
-                var link = Link.FromJson(linkToken, avatarChannelId, messageHistoryFile);
+                var link = Link.FromJson(linkToken, avatarChannelId);
                 ActiveLinks.Add(link);
             }
 
-            Extensions.Log("Activating links...");
+            Logger.Log("Activating links...");
             ActiveLinks.ForEach(l => l.Listen(DiscordClient, TelegramClient));
         }
 
@@ -77,20 +76,20 @@ namespace CSDiscordTelegramLink
             DiscordClient.Log += (msg) =>
             {
                 var prefix = @"\cblue*[Discord]\cwhite* ";
-                Extensions.Log(prefix + msg.Message);
+                Logger.Log(prefix + msg.Message);
                 if (msg.Exception is not null)
                 {
-                    Extensions.Log($"{prefix}\\cred*{msg.Exception.Message}");
-                    Extensions.Log($"{prefix}\\cred*{msg.Exception.StackTrace}");
+                    Logger.Log($"{prefix}\\cred*{msg.Exception.Message}");
+                    Logger.Log($"{prefix}\\cred*{msg.Exception.StackTrace.Replace("\n", "\n\\cred*")}");
                 }
 
                 return Task.CompletedTask;
             };
             DiscordClient.Ready += async () =>
             {
-                Extensions.Log("\\cgreen*Running!");
+                Logger.Log("\\cgreen*Running!");
 
-                Extensions.Log(await Status());
+                Logger.Log(await Status());
             };
 
             var token = Config["discordToken"].Value<string>();
@@ -103,7 +102,7 @@ namespace CSDiscordTelegramLink
             {
                 await DiscordClient.SetGameAsync(status);
             }
-            Extensions.Log("Discord bot started.");
+            Logger.Log("Discord bot started.");
         }
 
         public void SetupTelegramBot()
@@ -111,7 +110,7 @@ namespace CSDiscordTelegramLink
             var token = Config["telegramToken"].Value<string>();
             TelegramClient = new TelegramBotClient(token);
             TelegramClient.StartReceiving();
-            Extensions.Log("Telegram bot started.");
+            Logger.Log("Telegram bot started.");
         }
 
         public async Task Exit()
