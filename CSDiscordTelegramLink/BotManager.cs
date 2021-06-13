@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Discord;
@@ -22,9 +23,12 @@ namespace CSDiscordTelegramLink
 
         public BotManager()
         {
+            Extensions.Log("Starting up...");
+
             // Load config
             Extensions.Log("Loading configuration...");
             Config = JObject.Parse(File.ReadAllText("config.json"));
+            Extensions.Log("Configuration loaded.");
 
             // Reset temp files
             Extensions.Log("Resetting temp directory...");
@@ -33,9 +37,17 @@ namespace CSDiscordTelegramLink
                 Directory.Delete("temp", true);
             }
             Directory.CreateDirectory("temp");
+            Extensions.Log("Temp directory reset.");
+
+            // Database connection
+            var dbLoaded = ReplyManager.Init(DatabaseCredentials.FromJson(Config["database"] as JObject));
+            if (!dbLoaded)
+            {
+                Extensions.Log("Failed to connect to database, aborting.");
+                Environment.Exit(1);
+            }
 
             // Startup
-            Extensions.Log("Starting up...");
             SetupTelegramBot();
             SetupDiscordBot().GetAwaiter().GetResult();
 

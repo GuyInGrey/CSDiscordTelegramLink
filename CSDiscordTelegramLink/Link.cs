@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 using Discord;
-using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
 
@@ -105,7 +103,11 @@ namespace CSDiscordTelegramLink
             // Determine content
             var cleanContent = DiscordBot.CleanDiscordMessage(arg);
 
-            var msg = await TelegramBot.SendTextMessageAsync(GetTelegramGroup(), cleanContent, Telegram.Bot.Types.Enums.ParseMode.MarkdownV2, replyToMessageId: replyToMessageId);
+            var msg = await TelegramBot.SendTextMessageAsync(
+                chatId: GetTelegramGroup(), 
+                text: cleanContent, 
+                parseMode: Telegram.Bot.Types.Enums.ParseMode.MarkdownV2,
+                replyToMessageId: replyToMessageId);
             System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{msg.MessageId},{arg.Id}");
 
             foreach (var a in arg.Attachments)
@@ -224,6 +226,11 @@ namespace CSDiscordTelegramLink
                     text: text,
                     username: name,
                     avatarUrl: avatarUrl);
+            }
+
+            if (id == 0)
+            {
+                return;
             }
 
             System.IO.File.AppendAllText(MessageHistoryFilePath, $"\n{e.Message.MessageId},{id}");

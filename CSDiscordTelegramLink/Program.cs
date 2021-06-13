@@ -1,5 +1,7 @@
 ﻿using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace CSDiscordTelegramLink
 {
@@ -13,11 +15,6 @@ namespace CSDiscordTelegramLink
         static void Main(string[] args)
         {
             Extensions.Log("Hello, world!");
-            Extensions.Log(@"Color tests:
-
-\cwhite*\bblack*o\bdarkblue*o\bdarkcyan*o\bdarkgray*o\bdarkgreen*o\bdarkmagenta*o\bdarkred*o\bdarkyellow*o
-\cblack*\bwhite*o\bblue*o\bcyan*o\bgray*o\bgreen*o\bmagenta*o\bred*o\byellow*o
-");
             if (args.Length <= 0 || !Directory.Exists(args[0]))
             {
                 Extensions.Log("Invalid path: " + (args.Length > 0 ? args[0] : ""));
@@ -25,15 +22,12 @@ namespace CSDiscordTelegramLink
             }
 
             Directory.SetCurrentDirectory(args[0]);
-            Extensions.Log("Running in directory: " + Directory.GetCurrentDirectory());
-            Extensions.Log("OS: " + Environment.OSVersion);
-            Extensions.Log("Dotnet Version: " + Environment.Version + "\n");
-
+            Extensions.LogDebug();
 
             var bot = new BotManager();
             while (true)
             {
-                var text = Console.ReadLine().ToLower();
+                var text = Console.ReadLine().Trim().ToLower();
                 if (text == "exit")
                 {
                     Extensions.Log("Exiting...");
