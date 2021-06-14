@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 using Discord;
+using Discord.Rest;
 using Discord.Webhook;
 using Discord.WebSocket;
 
@@ -107,9 +109,22 @@ namespace CSDiscordTelegramLink
 
         private async void Telegram_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
-            if (DiscordBot.LoginState != LoginState.LoggedIn ||
-                DiscordBot.ConnectionState != ConnectionState.Connected ||
-                e.Message.From.IsBot ||
+            while (DiscordBot.LoginState != LoginState.LoggedIn ||
+                DiscordBot.ConnectionState != ConnectionState.Connected)
+            {
+                Thread.Sleep(1);
+            }
+
+            if (e.Message.Text?.ToLower() == "/chatid")
+            {
+                await TelegramBot.SendTextMessageAsync(
+                    e.Message.Chat.Id, 
+                    $"This channel's ID: {e.Message.Chat.Id}",
+                    replyToMessageId: e.Message.MessageId);
+                return;
+            }
+
+            if (e.Message.From.IsBot ||
                 e.Message.Chat.Id != TelegramGroupId)
             { return; }
 
@@ -121,16 +136,23 @@ namespace CSDiscordTelegramLink
             var hookToUse = WhichWebhook ? Hook1 : Hook2;
 
             // Determine avatar
+            RestUserMessage toDelete;
             string avatarUrl;
             var avatars = (await TelegramBot.GetUserProfilePhotosAsync(e.Message.From.Id))?.Photos;
             if (avatars.Length == 0 || avatars[0].Length == 0)
             {
-                avatarUrl = (await DiscordAvatarChannel.SendFileAsync("unknown.png", "")).Attachments.First().Url;
+                toDelete = await DiscordAvatarChannel.SendFileAsync("unknown.png", "");
+                avatarUrl = toDelete.Attachments.First().Url;
             }
             else
             {
                 var avatarPath = await TelegramBot.DownloadTelegramFile(avatars[0][0].FileId);
-                avatarUrl = (await DiscordAvatarChannel.SendFileAsync(avatarPath, "")).Attachments.First().Url;
+                toDelete = await DiscordAvatarChannel.SendFileAsync(avatarPath, "");
+                avatarUrl = toDelete.Attachments.First().Url;
+            }
+            if (toDelete is not null)
+            {
+                await toDelete.DeleteAsync();
             }
 
             // Determine text content
@@ -142,10 +164,10 @@ namespace CSDiscordTelegramLink
             // Determine reply
             var embeds = new List<Embed>();
             var em = new EmbedBuilder()
-                .WithColor(Color.Blue)
+                .WithColor(Color.Magenta)
                 .WithTitle("Replies To");
 
-            if (replyId != default) { goto noReply; }
+            if (replyId is null) { goto noReply; }
             var val = ReplyManager.GetFromTelegram(e.Message.Chat.Id, (int)replyId);
             if (!val.IsSpecified) { goto noReply; }
 
@@ -155,9 +177,13 @@ namespace CSDiscordTelegramLink
 
             var url = $"https://discord.com/channels/{GetDiscordChannel().Guild.Id}/{DiscordChannelId}/{linked}";
 
-            if (!(linkedMessage is null || linkedMessage.Content == ""))
+            if (linkedMessage.Content is not null || linkedMessage.Content != "")
             {
                 em.Description = $"[{linkedMessage.Content}]({url})";
+            }
+            else
+            {
+                em.Description = $"[Attachment]({url})";
             }
 
             if (linkedMessage.Attachments.Count > 0)

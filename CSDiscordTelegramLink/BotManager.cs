@@ -70,6 +70,7 @@ namespace CSDiscordTelegramLink
             var discordConfig = new DiscordSocketConfig()
             {
                 DefaultRetryMode = RetryMode.AlwaysRetry,
+                AlwaysDownloadUsers = true,
             };
             DiscordClient = new DiscordSocketClient(discordConfig);
 
