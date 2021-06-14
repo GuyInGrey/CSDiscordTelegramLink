@@ -110,8 +110,20 @@ namespace CSDiscordTelegramLink
         {
             var token = Config["telegramToken"].Value<string>();
             TelegramClient = new TelegramBotClient(token);
+            TelegramClient.OnMessage += TelegramClient_OnMessage;
             TelegramClient.StartReceiving();
             Logger.Log("Telegram bot started.");
+        }
+
+        private async void TelegramClient_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
+        {
+            if (e.Message.Text?.ToLower() == "/chatid")
+            {
+                await TelegramClient.SendTextMessageAsync(
+                    e.Message.Chat.Id,
+                    $"This channel's ID: {e.Message.Chat.Id}\nThat message's ID: {e.Message.MessageId}",
+                    replyToMessageId: e.Message.MessageId);
+            }
         }
 
         public async Task Exit()

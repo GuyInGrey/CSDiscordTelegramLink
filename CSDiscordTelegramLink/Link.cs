@@ -115,15 +115,6 @@ namespace CSDiscordTelegramLink
                 Thread.Sleep(1);
             }
 
-            if (e.Message.Text?.ToLower() == "/chatid")
-            {
-                await TelegramBot.SendTextMessageAsync(
-                    e.Message.Chat.Id, 
-                    $"This channel's ID: {e.Message.Chat.Id}",
-                    replyToMessageId: e.Message.MessageId);
-                return;
-            }
-
             if (e.Message.From.IsBot ||
                 e.Message.Chat.Id != TelegramGroupId)
             { return; }
@@ -162,6 +153,7 @@ namespace CSDiscordTelegramLink
                 (e.Message.Caption is object && e.Message.Caption != "") ? e.Message.Caption : "";
 
             // Determine reply
+            var missingReply = false;
             var embeds = new List<Embed>();
             var em = new EmbedBuilder()
                 .WithColor(Color.Magenta)
@@ -169,7 +161,11 @@ namespace CSDiscordTelegramLink
 
             if (replyId is null) { goto noReply; }
             var val = ReplyManager.GetFromTelegram(e.Message.Chat.Id, (int)replyId);
-            if (!val.IsSpecified) { goto noReply; }
+            if (!val.IsSpecified) 
+            {
+                missingReply = true;
+                goto noReply; 
+            }
 
             var linked = val.Value.DiscordMessageId;
             var linkedMessage = await GetDiscordChannel()?.GetMessageAsync(linked);
@@ -243,6 +239,14 @@ namespace CSDiscordTelegramLink
                 return;
             }
 
+            if (missingReply)
+            {
+                var msg = await GetDiscordChannel()?.GetMessageAsync(id);
+                if (msg is not null)
+                {
+                    await msg.AddReactionAsync(new Emoji("⚠"));
+                }
+            }
             ReplyManager.Add(e.Message.Chat.Id, e.Message.MessageId, id, DTMessage.DTOrigin.Telegram);
         }
     }
