@@ -42,20 +42,20 @@ namespace CSDiscordTelegramLink
 
             cleanContent = Regex.Replace(cleanContent, @"<@!?(\d+)>", m =>
             {
-                if (m is null || m.Groups.Count < 2) { return "@?"; }
-                if (!ulong.TryParse(m.Groups[1].ToString(), out var id)) { return "@?"; }
+                if (m is null || m.Groups.Count < 2) { return "@?1"; }
+                if (!ulong.TryParse(m.Groups[1].ToString(), out var id)) { return "@?2"; }
                 var user = client.GetUser(id);
-                if (user is null || user.Username is null) { return "@?"; }
+                if (user is null || user.Username is null) { return "@?3"; }
                 return "@" + user.Username;
             });
 
             cleanContent = Regex.Replace(cleanContent, @"<#!?(\d+)>", m =>
             {
-                if (m is null || m.Groups.Count < 2) { return "#?"; }
-                if (!ulong.TryParse(m.Groups[1].ToString(), out var id)) { return "#?"; }
+                if (m is null || m.Groups.Count < 2) { return "#?1"; }
+                if (!ulong.TryParse(m.Groups[1].ToString(), out var id)) { return "#?2"; }
                 var channel = client.GetChannel(id);
                 if (channel is null) { return "#?"; }
-                if (channel is not SocketTextChannel textChannel || textChannel.Name is null) { return "#?"; }
+                if (channel is not SocketTextChannel textChannel || textChannel.Name is null) { return "#?3"; }
                 return textChannel.Name;
             });
 
