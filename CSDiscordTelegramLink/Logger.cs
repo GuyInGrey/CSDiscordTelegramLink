@@ -1,15 +1,22 @@
 ﻿using System;
 using System.IO;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
 
 namespace CSDiscordTelegramLink
 {
     public static class Logger
     {
         private static string LogFile;
+        private static bool HasInitialized;
+        private static BlockingCollection<object> LogQueue;
 
         public static void Init()
         {
+            if (HasInitialized) { return; }
+            HasInitialized = true;
             if (!Directory.Exists("logs"))
             {
                 Directory.CreateDirectory("logs");
@@ -17,9 +24,34 @@ namespace CSDiscordTelegramLink
 
             LogFile = Path.Combine("logs", $"{DateTime.Now:yyyy.M.dd HH-mm-ss}.log");
             File.AppendAllText(LogFile, "");
+
+            LogQueue = new BlockingCollection<object>();
+            Task.Run(LoggerThread);
         }
 
         public static void Log(object msg)
+        {
+            LogQueue.TryAdd(msg);
+        }
+
+        private static Task LoggerThread()
+        {
+            while (true)
+            {
+                try
+                {
+                    HandleObject(LogQueue.Take());
+                }
+                catch
+                {
+                    Console.WriteLine("LOGGING ERROR");
+                }
+
+                Thread.Sleep(1);
+            }
+        }
+
+        private static void HandleObject(object msg)
         {
             Console.ForegroundColor = ConsoleColor.White;
             Console.BackgroundColor = ConsoleColor.Black;

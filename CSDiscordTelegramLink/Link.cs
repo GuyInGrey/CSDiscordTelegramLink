@@ -68,7 +68,7 @@ namespace CSDiscordTelegramLink
 
         private async Task Discord_MessageReceived(SocketMessage arg)
         {
-            if (arg.Author.IsBot || 
+            if (arg.Author.IsWebhook || 
                 arg.Source == MessageSource.System ||
                 arg.Channel.Id != DiscordChannelId) 
             { return; }
