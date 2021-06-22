@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -176,7 +175,7 @@ namespace CSDiscordTelegramLink
             if (linkedMessage.Content is not null && linkedMessage.Content.Trim() != "")
             {
                 var con = linkedMessage.Content;
-                con = con.Length > 250 ? con.Substring(0, 250) : con;
+                con = con.Length > 250 ? con.Substring(0, 250) + "..." : con;
                 em.Description = $"[{con}]({url})";
             }
             else
