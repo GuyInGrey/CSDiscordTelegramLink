@@ -107,6 +107,7 @@ namespace CSDiscordTelegramLink
 
                 return Task.CompletedTask;
             };
+
             DiscordClient.Ready += async () =>
             {
                 Logger.Log("\\cgreen*Running!");

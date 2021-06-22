@@ -45,9 +45,8 @@ namespace CSDiscordTelegramLink
                 catch
                 {
                     Console.WriteLine("LOGGING ERROR");
+                    Thread.Sleep(1);
                 }
-
-                Thread.Sleep(1);
             }
         }
 

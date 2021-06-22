@@ -173,9 +173,11 @@ namespace CSDiscordTelegramLink
 
             var url = $"https://discord.com/channels/{GetDiscordChannel().Guild.Id}/{DiscordChannelId}/{linked}";
 
-            if (linkedMessage.Content is not null || linkedMessage.Content != "")
+            if (linkedMessage.Content is not null && linkedMessage.Content.Trim() != "")
             {
-                em.Description = $"[{linkedMessage.Content}]({url})";
+                var con = linkedMessage.Content;
+                con = con.Length > 250 ? con.Substring(0, 250) : con;
+                em.Description = $"[{con}]({url})";
             }
             else
             {

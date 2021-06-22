@@ -16,7 +16,7 @@ namespace CSDiscordTelegramLink
         {
             if (args.Length <= 0 || !Directory.Exists(args[0]))
             {
-                Logger.Log("Invalid path: " + (args.Length > 0 ? args[0] : ""));
+                Console.WriteLine("Invalid path: " + (args.Length > 0 ? args[0] : ""));
                 return;
             }
 
