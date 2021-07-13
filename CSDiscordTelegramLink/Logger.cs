@@ -50,7 +50,7 @@ namespace CSDiscordTelegramLink
             }
         }
 
-        private static void HandleObject(object msg)
+        public static void HandleObject(object msg)
         {
             Console.ForegroundColor = ConsoleColor.White;
             Console.BackgroundColor = ConsoleColor.Black;

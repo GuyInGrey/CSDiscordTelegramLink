@@ -1,7 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace CSDiscordTelegramLink
 {
@@ -14,6 +12,8 @@ namespace CSDiscordTelegramLink
 
         static void Main(string[] args)
         {
+            AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
+
             if (args.Length <= 0 || !Directory.Exists(args[0]))
             {
                 Console.WriteLine("Invalid path: " + (args.Length > 0 ? args[0] : ""));
@@ -46,6 +46,13 @@ namespace CSDiscordTelegramLink
                     Logger.Log("Unknown command. The only ones are `exit` and `status` at the moment.");
                 }
             }
+        }
+
+        private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
+        {
+            var e2 = e.ExceptionObject;
+            Logger.HandleObject(e2);
+            Environment.Exit(1);
         }
     }
 }

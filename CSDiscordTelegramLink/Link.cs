@@ -35,6 +35,8 @@ namespace CSDiscordTelegramLink
         private bool WhichWebhook;
         private string LastTelegramName = "";
 
+        private TicketManager TicketManager;
+
         public ChatId GetTelegramGroup() => 
             new(TelegramGroupId);
 
@@ -53,10 +55,12 @@ namespace CSDiscordTelegramLink
             };
         }
 
-        public void Listen(DiscordSocketClient discord, TelegramBotClient telegram)
+        public void Listen(DiscordSocketClient discord, TelegramBotClient telegram, TicketManager manager)
         {
             DiscordBot = discord;
             TelegramBot = telegram;
+
+            TicketManager = manager;
 
             Hook1 = new DiscordWebhookClient(Webhook1);
             Hook2 = new DiscordWebhookClient(Webhook2);
@@ -71,6 +75,8 @@ namespace CSDiscordTelegramLink
                 arg.Source == MessageSource.System ||
                 arg.Channel.Id != DiscordChannelId) 
             { return; }
+
+            TicketManager.WaitForTurn();
 
             // Determine reply
             var replyToMessageId = 0;
@@ -119,6 +125,8 @@ namespace CSDiscordTelegramLink
             { return; }
 
             var name = e.Message.From.FirstName + " " + e.Message.From.LastName;
+
+            TicketManager.WaitForTurn();
 
             // Determine webhook
             if (LastTelegramName != name) { WhichWebhook ^= true; }
@@ -175,7 +183,7 @@ namespace CSDiscordTelegramLink
             if (linkedMessage.Content is not null && linkedMessage.Content.Trim() != "")
             {
                 var con = linkedMessage.Content;
-                con = con.Length > 250 ? con.Substring(0, 250) + "..." : con;
+                con = con.Length > 50 ? con.Substring(0, 50) + "..." : con;
                 em.Description = $"[{con}]({url})";
             }
             else

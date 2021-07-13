@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
 using System.Threading.Tasks;
 
 using Discord;
@@ -20,6 +19,7 @@ namespace CSDiscordTelegramLink
         public DiscordSocketClient DiscordClient;
         public TelegramBotClient TelegramClient;
         public List<Link> ActiveLinks = new();
+        public TicketManager TicketManager = new(2);
 
         public BotManager()
         {
@@ -27,7 +27,8 @@ namespace CSDiscordTelegramLink
 
             // Load config
             Logger.Log("Loading configuration...");
-            Config = JObject.Parse(File.ReadAllText("config.json"));
+            var configText = File.ReadAllText("config.json");
+            Config = JObject.Parse(configText);
             Logger.Log("Configuration loaded.");
 
             // Reset temp files
@@ -62,7 +63,7 @@ namespace CSDiscordTelegramLink
             }
 
             Logger.Log("Activating links...");
-            ActiveLinks.ForEach(l => l.Listen(DiscordClient, TelegramClient));
+            ActiveLinks.ForEach(l => l.Listen(DiscordClient, TelegramClient, TicketManager));
 
             BeginListening().GetAwaiter().GetResult();
         }
