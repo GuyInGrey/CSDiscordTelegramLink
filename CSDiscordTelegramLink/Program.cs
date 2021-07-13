@@ -43,9 +43,14 @@ namespace CSDiscordTelegramLink
                 {
                     Logger.Log(bot.Status().GetAwaiter().GetResult());
                 }
+                else if (text == "crash")
+                {
+                    Logger.Log("Forcing a crash.");
+                    throw new Exception("Console-induced crash.");
+                }
                 else
                 {
-                    Logger.Log("Unknown command. The only ones are `exit` and `status` at the moment.");
+                    Logger.Log("Unknown command. The only ones are `exit`, `status`, and `crash`.");
                 }
             }
         }
@@ -65,7 +70,9 @@ namespace CSDiscordTelegramLink
                 Logger.Log(e2);
             }
 
-            while (Logger.HasQueued) { }
+            while (Logger.HasQueued && 
+                (bot is null || bot.DiscordClient is null || bot.DiscordClient.ConnectionState != Discord.ConnectionState.Disconnected)) 
+            { }
             Environment.Exit(1);
         }
     }
