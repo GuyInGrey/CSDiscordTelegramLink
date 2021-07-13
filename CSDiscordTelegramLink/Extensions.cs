@@ -46,7 +46,7 @@ namespace CSDiscordTelegramLink
                 if (!ulong.TryParse(m.Groups[1].ToString(), out var id)) { return "@?2"; }
                 var user = client.GetUser(id);
                 if (user is null || user.Username is null) { return "@?3"; }
-                return "@" + user.Username;
+                return "@ " + user.Username;
             });
 
             cleanContent = Regex.Replace(cleanContent, @"<#!?(\d+)>", m =>

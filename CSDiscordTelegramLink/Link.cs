@@ -107,7 +107,7 @@ namespace CSDiscordTelegramLink
                 }
                 catch
                 {
-                    await arg.AddReactionAsync(new Emoji("⚠"));
+                    await arg.AddReactionAsync(new Emoji("📁"));
                 }
             }
         }
@@ -209,17 +209,27 @@ namespace CSDiscordTelegramLink
 
             // Determine file
             string filePath = null;
-            if (e.Message.Photo is not null) 
+            try
             {
-                filePath = await TelegramBot.DownloadTelegramFile(e.Message.Photo.Last().FileId); 
-            }
-            else if (e.Message.Document is not null)
+                if (e.Message.Photo is not null)
+                {
+                    filePath = await TelegramBot.DownloadTelegramFile(e.Message.Photo.Last().FileId);
+                }
+                else if (e.Message.Document is not null)
+                {
+                    filePath = await TelegramBot.DownloadTelegramFile(e.Message.Document.FileId);
+                }
+                else if (e.Message.Audio is not null)
+                {
+                    filePath = await TelegramBot.DownloadTelegramFile(e.Message.Audio.FileId);
+                }
+            } 
+            catch
             {
-                filePath = await TelegramBot.DownloadTelegramFile(e.Message.Document.FileId);
-            }
-            else if (e.Message.Audio is not null)
-            {
-                filePath = await TelegramBot.DownloadTelegramFile(e.Message.Audio.FileId);
+                embeds.Add(new EmbedBuilder()
+                    .WithColor(Color.Red)
+                    .WithDescription("Message contained an attachment that was too large.")
+                    .Build());
             }
 
             // Send
@@ -234,7 +244,7 @@ namespace CSDiscordTelegramLink
                     embeds: embeds,
                     filePath: filePath);
             }
-            else if (text is not null)
+            else if (text is not null || embeds.Count != 0)
             {
                 id = await hookToUse.SendMessageAsync(
                     text: text,
