@@ -10,6 +10,8 @@ namespace CSDiscordTelegramLink
         // Hopefully it's not too messy.
         // Enjoy!
 
+        static BotManager bot;
+
         static void Main(string[] args)
         {
             AppDomain.CurrentDomain.UnhandledException += CurrentDomain_UnhandledException;
@@ -26,7 +28,7 @@ namespace CSDiscordTelegramLink
             Logger.Log("Hello, world!");
             Logger.LogDebug();
 
-            var bot = new BotManager();
+            bot = new BotManager();
             while (true)
             {
                 var text = Console.ReadLine().Trim().ToLower();
@@ -50,8 +52,20 @@ namespace CSDiscordTelegramLink
 
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
-            var e2 = e.ExceptionObject;
-            Logger.HandleObject(e2);
+            Logger.Log(e.ExceptionObject);
+
+            try
+            {
+                Logger.Log("Exiting...");
+                bot?.Exit()?.GetAwaiter().GetResult();
+                Logger.Log("Goodbye!");
+            }
+            catch (Exception e2)
+            {
+                Logger.Log(e2);
+            }
+
+            while (Logger.HasQueued) { }
             Environment.Exit(1);
         }
     }

@@ -13,6 +13,8 @@ namespace CSDiscordTelegramLink
         private static bool HasInitialized;
         private static BlockingCollection<object> LogQueue;
 
+        public static bool HasQueued => LogQueue.Count > 0;
+
         public static void Init()
         {
             if (HasInitialized) { return; }
