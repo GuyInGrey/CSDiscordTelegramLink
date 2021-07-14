@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -67,6 +68,38 @@ namespace CSDiscordTelegramLink
 
             cleanContent = $"*__{msg.Author.Username}__* \n{cleanContent}";
             return cleanContent;
+        }
+
+        public static List<string> FormatSplit(this string s, int chunkSize, char separator)
+        {
+            var toReturn = new List<string>();
+            if (s is null || s.Trim().Length <= 0) { return toReturn; }
+
+            s = s.Trim();
+
+            while (s.Length > 0)
+            {
+                if (s.Length < chunkSize)
+                {
+                    toReturn.Add(s);
+                    break;
+                }
+
+                var i = s.Substring(0, chunkSize).LastIndexOf("\n");
+                if (i < 0)
+                {
+                    var p = s.Substring(0, chunkSize);
+                    s = s[chunkSize..];
+                    toReturn.Add(p);
+                }
+                else
+                {
+                    var p = s.Substring(0, i);
+                    s = s[(i + 1)..];
+                }
+            }
+
+            return toReturn;
         }
     }
 }

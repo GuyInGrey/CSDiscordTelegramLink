@@ -235,6 +235,7 @@ namespace CSDiscordTelegramLink
             // Send
             ulong id = 0;
             text = text == "" ? null : text;
+            var textGroups = text.FormatSplit(2000, '\n');
             if (filePath is not null)
             {
                 id = await hookToUse.SendFileAsync(
@@ -244,13 +245,23 @@ namespace CSDiscordTelegramLink
                     embeds: embeds,
                     filePath: filePath);
             }
-            else if (text is not null || embeds.Count != 0)
+            else if (textGroups.Count != 0 || embeds.Count != 0)
             {
                 id = await hookToUse.SendMessageAsync(
-                    text: text,
+                    text: textGroups[0],
                     username: name,
                     avatarUrl: avatarUrl,
                     embeds: embeds);
+            }
+            if (textGroups.Count != 0) { textGroups.RemoveAt(0); }
+
+            while (textGroups.Count > 0)
+            {
+                await hookToUse.SendMessageAsync(
+                    text: textGroups[0],
+                    username: name,
+                    avatarUrl: avatarUrl);
+                textGroups.RemoveAt(0);
             }
 
             if (id == 0)
