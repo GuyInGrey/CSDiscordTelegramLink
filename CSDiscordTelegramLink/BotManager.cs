@@ -114,7 +114,17 @@ namespace CSDiscordTelegramLink
                 Logger.Log("\\cgreen*Running!");
 
                 Logger.Log(await Status());
+                await CrashDetection();
             };
+        }
+
+        public async Task CrashDetection()
+        {
+            if (Program.IntendedRestart) { return; }
+
+            var botTesting = DiscordClient.GetChannel(853036595401981983) as SocketTextChannel;
+            var logPath = Directory.GetFiles("logs")[^2];
+            await botTesting.SendFileAsync(logPath, "Crash detected, <@126481324017057792>");
         }
 
         public void SetupTelegramBot()

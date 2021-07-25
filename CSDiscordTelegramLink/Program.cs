@@ -11,6 +11,7 @@ namespace CSDiscordTelegramLink
         // Enjoy!
 
         static BotManager bot;
+        public static bool IntendedRestart;
 
         static void Main(string[] args)
         {
@@ -23,8 +24,14 @@ namespace CSDiscordTelegramLink
             }
 
             Directory.SetCurrentDirectory(args[0]);
-            Logger.Init();
 
+            if (File.Exists("TMP_RESTARTED"))
+            {
+                File.Delete("TMP_RESTARTED");
+                IntendedRestart = true;
+            }
+
+            Logger.Init();
             Logger.Log("Hello, world!");
             Logger.LogDebug();
 
@@ -36,6 +43,7 @@ namespace CSDiscordTelegramLink
                 {
                     Logger.Log("Exiting...");
                     bot.Exit().GetAwaiter().GetResult();
+                    File.Create("TMP_RESTARTED").Dispose();
                     Logger.Log("Goodbye!");
                     break;
                 }
@@ -55,6 +63,12 @@ namespace CSDiscordTelegramLink
             }
         }
 
+        /// <summary>
+        /// If this runs, the program had an exception and is most likely in an unrecoverable state. <br/><br/>
+        /// It attempts to log the error, then exit as properly as possible.<br/><br/>
+        /// The service running this bot (e.g. Pterodactyl Panel) should then detect that the process is dead,<br/>
+        /// and reboot it automatically.
+        /// </summary>
         private static void CurrentDomain_UnhandledException(object sender, UnhandledExceptionEventArgs e)
         {
             Logger.Log(e.ExceptionObject);
