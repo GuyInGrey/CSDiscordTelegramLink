@@ -33,6 +33,7 @@ namespace CSDiscordTelegramLink
         {
             Discord = 0,
             Telegram = 1,
+            Tag = 2,
         }
     }
 }

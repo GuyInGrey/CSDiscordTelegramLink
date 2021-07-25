@@ -27,7 +27,7 @@ namespace CSDiscordTelegramLink
 
             // Load config
             Logger.Log("Loading configuration...");
-            var configText = File.ReadAllText("config.json");
+            var configText = File.ReadAllText("config.json").Replace("\r", "");
             Config = JObject.Parse(configText);
             Logger.Log("Configuration loaded.");
 

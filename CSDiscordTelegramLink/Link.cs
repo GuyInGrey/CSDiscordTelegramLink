@@ -306,14 +306,16 @@ namespace CSDiscordTelegramLink
             if (content is not null && content.Trim() != "")
             {
                 TicketManager.WaitForTurn();
-                await GetDiscordChannel().SendMessageAsync(text: content);
-                await TelegramBot.SendTextMessageAsync(TelegramGroupId, content);
+                var dId = (await GetDiscordChannel().SendMessageAsync(text: content)).Id;
+                var tId = (await TelegramBot.SendTextMessageAsync(TelegramGroupId, content)).MessageId;
+                ReplyManager.Add(TelegramGroupId, tId, dId, DTMessage.DTOrigin.Tag);
             }
             if (attachment is not null && attachment.Trim() != "")
             {
                 TicketManager.WaitForTurn();
-                await GetDiscordChannel().SendMessageAsync(text: attachment);
-                await TelegramBot.SendTextMessageAsync(TelegramGroupId, attachment);
+                var dId = (await GetDiscordChannel().SendMessageAsync(text: attachment)).Id;
+                var tId = (await TelegramBot.SendTextMessageAsync(TelegramGroupId, attachment)).MessageId;
+                ReplyManager.Add(TelegramGroupId, tId, dId, DTMessage.DTOrigin.Tag);
             }
         }
     }
