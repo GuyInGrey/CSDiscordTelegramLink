@@ -23,6 +23,8 @@ namespace CSDiscordTelegramLink
         public string Webhook1;
         public string Webhook2;
 
+        public List<Tag> Tags;
+
         private DiscordSocketClient DiscordBot;
         private TelegramBotClient TelegramBot;
         private ulong DiscordAvatarChannelId;
@@ -52,6 +54,7 @@ namespace CSDiscordTelegramLink
                 Webhook1 = j["discordWebhook1"].Value<string>(),
                 Webhook2 = j["discordWebhook2"].Value<string>(),
                 DiscordAvatarChannelId = avatarChannel,
+                Tags = j["tags"].Value<JArray>().ToObject<List<Tag>>(),
             };
         }
 
@@ -71,7 +74,7 @@ namespace CSDiscordTelegramLink
 
         private async Task Discord_MessageReceived(SocketMessage arg)
         {
-            if (arg.Author.IsWebhook || 
+            if (arg.Author.IsBot || 
                 arg.Source == MessageSource.System ||
                 arg.Channel.Id != DiscordChannelId) 
             { return; }
@@ -110,6 +113,8 @@ namespace CSDiscordTelegramLink
                     await arg.AddReactionAsync(new Emoji("📁"));
                 }
             }
+
+            await OnMessage(arg.Content);
         }
 
         private async void Telegram_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
@@ -124,9 +129,13 @@ namespace CSDiscordTelegramLink
                 e.Message.Chat.Id != TelegramGroupId)
             { return; }
 
-            var name = e.Message.From.FirstName + " " + e.Message.From.LastName;
+
+            var text = (e.Message.Text is object && e.Message.Text != "") ? e.Message.Text :
+                (e.Message.Caption is object && e.Message.Caption != "") ? e.Message.Caption : "";
 
             TicketManager.WaitForTurn();
+
+            var name = e.Message.From.FirstName + " " + e.Message.From.LastName;
 
             // Determine webhook
             if (LastTelegramName != name) { WhichWebhook ^= true; }
@@ -155,9 +164,6 @@ namespace CSDiscordTelegramLink
 
             // Determine text content
             var replyId = e.Message.ReplyToMessage?.MessageId;
-
-            var text = (e.Message.Text is object && e.Message.Text != "") ? e.Message.Text :
-                (e.Message.Caption is object && e.Message.Caption != "") ? e.Message.Caption : "";
 
             // Determine reply
             var missingReply = false;
@@ -245,7 +251,7 @@ namespace CSDiscordTelegramLink
                     embeds: embeds,
                     filePath: filePath);
             }
-            else if (textGroups.Count != 0 || embeds.Count != 0)
+            else if (textGroups.Count > 0 || embeds.Count != 0)
             {
                 id = await hookToUse.SendMessageAsync(
                     text: textGroups[0],
@@ -253,7 +259,7 @@ namespace CSDiscordTelegramLink
                     avatarUrl: avatarUrl,
                     embeds: embeds);
             }
-            if (textGroups.Count != 0) { textGroups.RemoveAt(0); }
+            if (textGroups.Count > 0) { textGroups.RemoveAt(0); }
 
             while (textGroups.Count > 0)
             {
@@ -263,6 +269,8 @@ namespace CSDiscordTelegramLink
                     avatarUrl: avatarUrl);
                 textGroups.RemoveAt(0);
             }
+
+            await OnMessage(text);
 
             if (id == 0)
             {
@@ -278,6 +286,35 @@ namespace CSDiscordTelegramLink
                 }
             }
             ReplyManager.Add(e.Message.Chat.Id, e.Message.MessageId, id, DTMessage.DTOrigin.Telegram);
+        }
+
+        private async Task OnMessage(string content)
+        {
+            if (!content.StartsWith("/")) { return; }
+            var tagName = content[1..];
+            if (tagName.Contains(" ")) { tagName = tagName.Split(' ')[0]; }
+
+            var tags = BotManager.Config["globalTags"].Value<JArray>().ToObject<List<Tag>>().Concat(Tags);
+            var match = tags.FirstOrDefault(t => t.Name.ToLower() == tagName.ToLower());
+            if (match is null) { return; }
+
+            await SendToBoth(match.Content, match.Attachment);
+        }
+
+        private async Task SendToBoth(string content = null, string attachment = null)
+        {
+            if (content is not null && content.Trim() != "")
+            {
+                TicketManager.WaitForTurn();
+                await GetDiscordChannel().SendMessageAsync(text: content);
+                await TelegramBot.SendTextMessageAsync(TelegramGroupId, content);
+            }
+            if (attachment is not null && attachment.Trim() != "")
+            {
+                TicketManager.WaitForTurn();
+                await GetDiscordChannel().SendMessageAsync(text: attachment);
+                await TelegramBot.SendTextMessageAsync(TelegramGroupId, attachment);
+            }
         }
     }
 }

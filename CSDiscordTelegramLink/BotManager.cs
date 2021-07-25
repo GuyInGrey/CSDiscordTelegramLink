@@ -14,7 +14,7 @@ namespace CSDiscordTelegramLink
 {
     public class BotManager
     {
-        public JObject Config;
+        public static JObject Config;
 
         public DiscordSocketClient DiscordClient;
         public TelegramBotClient TelegramClient;
