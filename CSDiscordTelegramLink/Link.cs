@@ -290,7 +290,7 @@ namespace CSDiscordTelegramLink
 
         private async Task OnMessage(string content)
         {
-            if (!content.StartsWith("/")) { return; }
+            if (content is null || !content.StartsWith("/")) { return; }
             var tagName = content[1..];
             if (tagName.Contains(" ")) { tagName = tagName.Split(' ')[0]; }
 
