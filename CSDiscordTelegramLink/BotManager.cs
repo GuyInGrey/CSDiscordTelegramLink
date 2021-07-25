@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 
 using Discord;
@@ -123,7 +124,9 @@ namespace CSDiscordTelegramLink
             if (Program.IntendedRestart) { return; }
 
             var botTesting = DiscordClient.GetChannel(853036595401981983) as SocketTextChannel;
-            var logPath = Directory.GetFiles("logs")[^2];
+
+            var logPath = new DirectoryInfo("logs").GetFiles().OrderBy(p => p.CreationTime).ToArray()[^2].FullName;
+
             await botTesting.SendFileAsync(logPath, "Crash detected, <@126481324017057792>");
         }
 
