@@ -123,7 +123,8 @@ namespace CSDiscordTelegramLink
         {
             if (Program.IntendedRestart) { return; }
 
-            var botTesting = DiscordClient.GetChannel(853036595401981983) as SocketTextChannel;
+            var botTestingId = ulong.Parse(Config["botTesting"].Value<string>());
+            var botTesting = DiscordClient.GetChannel(botTestingId) as SocketTextChannel;
 
             var logPath = new DirectoryInfo("logs").GetFiles().OrderBy(p => p.CreationTime).ToArray()[^2].FullName;
 
@@ -166,6 +167,7 @@ namespace CSDiscordTelegramLink
             var statusMessage = @$"
 ||------------------------------------------------------------------------------------||
 \cblue*Discord Status:  \cwhite*{DiscordClient.ConnectionState} / {DiscordClient.LoginState}
+\cblue*In guilds: \cwhite*{string.Join(", ", DiscordClient.Guilds.Select(g => g.Name + " (" + g.Id + ")"))}
 \ccyan*Telegram Status: \cwhite*(IsReceiving: {TelegramClient.IsReceiving}) / (ApiTest: {await TelegramClient.TestApiAsync()})
 \ccyan*Links:\cwhite*
 {linkText}
