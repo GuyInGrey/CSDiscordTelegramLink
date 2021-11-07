@@ -30,9 +30,18 @@ namespace CSDiscordTelegramLink
         {
             var cleanContent = msg.Content;
 
+            var user = msg.Author as SocketGuildUser;
+            var username = user.Nickname ?? user.Username;
+
+            username = Regex.Replace(username, @"([.*\-+!#(){}|><_=])", m =>
+            {
+                if (m is null || m.Groups.Count < 2) { return ""; }
+                return $"\\{m.Groups[1]}";
+            });
+
             if (msg.Content is null)
             {
-                return $"*__{msg.Author.Username}__*";
+                return $"*__{username}__*";
             }
 
             cleanContent = Regex.Replace(cleanContent, @"<:([^:]+):\d+>", m =>
@@ -66,7 +75,7 @@ namespace CSDiscordTelegramLink
                 return $"\\{m.Groups[1]}";
             });
 
-            cleanContent = $"*__{msg.Author.Username}__* \n{cleanContent}";
+            cleanContent = $"*__{username}__* \n{cleanContent}";
             return cleanContent;
         }
 

@@ -145,15 +145,15 @@ namespace CSDiscordTelegramLink
             // Determine avatar
             RestUserMessage toDelete;
             string avatarUrl;
-            var avatars = (await TelegramBot.GetUserProfilePhotosAsync(e.Message.From.Id))?.Photos;
-            if (avatars.Length == 0 || avatars[0].Length == 0)
+            var photos = (await TelegramBot.GetUserProfilePhotosAsync(e.Message.From.Id))?.Photos;
+            if (photos.Length == 0 || photos[0].Length == 0)
             {
                 toDelete = await DiscordAvatarChannel.SendFileAsync("unknown.png", "");
                 avatarUrl = toDelete.Attachments.First().Url;
             }
             else
             {
-                var avatarPath = await TelegramBot.DownloadTelegramFile(avatars[0][0].FileId);
+                var avatarPath = await TelegramBot.DownloadTelegramFile(photos[0][0].FileId);
                 toDelete = await DiscordAvatarChannel.SendFileAsync(avatarPath, "");
                 avatarUrl = toDelete.Attachments.First().Url;
             }
