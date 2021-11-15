@@ -48,7 +48,7 @@ A C# linking bot between Telegram and Discord
 }
 ```
 13. In the runtime folder, add an `unknown.png` file. This is the image that is seen in Discord when a telegram user has no avatar. [This is the image I use.](https://imgur.com/a/DKEKlOn)
-13. Run the bot, passing one argument, which is the path to the runtime folder.
+14. Run the bot, passing one argument, which is the path to the runtime folder.
    * It is recommended this is automated, and restarts when stopped automatically, as this bot can and will crash on you. It's not perfect.
 
 ### For every link you want to make between Telegram and Discord, do the following:
