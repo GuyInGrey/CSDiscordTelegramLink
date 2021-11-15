@@ -7,7 +7,7 @@ A C# linking bot between Telegram and Discord
 2. Publish the project to folder, targetting the platform that will be hosting the bot.  
 3. On the platform that will host the bot, install `.NET 5.0`.  
 4. On the platform that will host the bot, install a `MySql` server. In that server, create a new database. This guide won't show how to do that as it depends on the platform.  
-5. Create a new folder that will contain the config and temp data for the bot (the `runtime folder`).  
+5. Create a new folder that will contain the config and temp data for the bot (the `runtime folder`, note that this is NOT where the published bot bin files are stored. You may store those bin files wherever).  
 6. At [Discord's Developer page](https://discord.com/developers/applications), create a new application. 
    * Name it, and set it's avatar. 
    * Go to the bot tab and create a bot. Copy and note the token.
