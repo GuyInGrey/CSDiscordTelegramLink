@@ -119,6 +119,8 @@ namespace CSDiscordTelegramLink
 
         private async void Telegram_OnMessage(object sender, Telegram.Bot.Args.MessageEventArgs e)
         {
+            Logger.Log("Message.");
+
             while (DiscordBot.LoginState != LoginState.LoggedIn ||
                 DiscordBot.ConnectionState != ConnectionState.Connected)
             {
@@ -129,13 +131,36 @@ namespace CSDiscordTelegramLink
                 e.Message.Chat.Id != TelegramGroupId)
             { return; }
 
+            new Thread(() =>
+            {
+                _ = ManageTelegramMsg(e.Message);
+            }).Start();
+        }
 
-            var text = (e.Message.Text is object && e.Message.Text != "") ? e.Message.Text :
-                (e.Message.Caption is object && e.Message.Caption != "") ? e.Message.Caption : "";
+        private bool Cleared;
 
+        public void ClearQueued()
+        {
+            Cleared = true;
+            TicketManager.Tickets.Clear();
+            new Thread(() =>
+            {
+                Thread.Sleep(10000);
+                Cleared = false;
+            }).Start();
+        }
+
+        private async Task ManageTelegramMsg(Message msg)
+        {
             TicketManager.WaitForTurn();
+            if (Cleared) { 
+                return; 
+            }
 
-            var name = e.Message.From.FirstName + " " + e.Message.From.LastName;
+            var text = (msg.Text is object && msg.Text != "") ? msg.Text :
+                (msg.Caption is object && msg.Caption != "") ? msg.Caption : "";
+
+            var name = msg.From.FirstName + " " + msg.From.LastName;
 
             // Determine webhook
             if (LastTelegramName != name) { WhichWebhook ^= true; }
@@ -145,7 +170,7 @@ namespace CSDiscordTelegramLink
             // Determine avatar
             RestUserMessage toDelete;
             string avatarUrl;
-            var photos = (await TelegramBot.GetUserProfilePhotosAsync(e.Message.From.Id))?.Photos;
+            var photos = (await TelegramBot.GetUserProfilePhotosAsync(msg.From.Id))?.Photos;
             if (photos.Length == 0 || photos[0].Length == 0)
             {
                 toDelete = await DiscordAvatarChannel.SendFileAsync("unknown.png", "");
@@ -163,7 +188,7 @@ namespace CSDiscordTelegramLink
             }
 
             // Determine text content
-            var replyId = e.Message.ReplyToMessage?.MessageId;
+            var replyId = msg.ReplyToMessage?.MessageId;
 
             // Determine reply
             var missingReply = false;
@@ -173,22 +198,22 @@ namespace CSDiscordTelegramLink
                 .WithTitle("Replies To");
 
             if (replyId is null) { goto noReply; }
-            var val = ReplyManager.GetFromTelegram(e.Message.Chat.Id, (int)replyId);
-            if (!val.IsSpecified) 
+            var val = ReplyManager.GetFromTelegram(msg.Chat.Id, (int)replyId);
+            if (!val.IsSpecified)
             {
                 missingReply = true;
-                goto noReply; 
+                goto noReply;
             }
 
             var linked = val.Value.DiscordMessageId;
-            var linkedMessage = await GetDiscordChannel()?.GetMessageAsync(linked);
-            if (linkedMessage is null) { goto noReply; }
+            var linkmsg = await GetDiscordChannel()?.GetMessageAsync(linked);
+            if (linkmsg is null) { goto noReply; }
 
             var url = $"https://discord.com/channels/{GetDiscordChannel().Guild.Id}/{DiscordChannelId}/{linked}";
 
-            if (linkedMessage.Content is not null && linkedMessage.Content.Trim() != "")
+            if (linkmsg.Content is not null && linkmsg.Content.Trim() != "")
             {
-                var con = linkedMessage.Content;
+                var con = linkmsg.Content;
                 con = con.Length > 50 ? con.Substring(0, 50) + "..." : con;
                 em.Description = $"[{con}]({url})";
             }
@@ -197,39 +222,39 @@ namespace CSDiscordTelegramLink
                 em.Description = $"[Attachment]({url})";
             }
 
-            if (linkedMessage.Attachments.Count > 0)
+            if (linkmsg.Attachments.Count > 0)
             {
-                em.ThumbnailUrl = linkedMessage.Attachments.First().Url;
+                em.ThumbnailUrl = linkmsg.Attachments.First().Url;
             }
 
             em = em.WithFooter(new EmbedFooterBuilder()
             {
-                Text = linkedMessage.Author.Username,
-                IconUrl = linkedMessage.Author.GetAvatarUrl(),
+                Text = linkmsg.Author.Username,
+                IconUrl = linkmsg.Author.GetAvatarUrl(),
             });
             embeds.Add(em.Build());
 
             noReply:;
 
-            text = e.Message.Sticker is not null ? $"{e.Message.Sticker.Emoji}\n{text}" : text;
+            text = msg.Sticker is not null ? $"{msg.Sticker.Emoji}\n{text}" : text;
 
             // Determine file
             string filePath = null;
             try
             {
-                if (e.Message.Photo is not null)
+                if (msg.Photo is not null)
                 {
-                    filePath = await TelegramBot.DownloadTelegramFile(e.Message.Photo.Last().FileId);
+                    filePath = await TelegramBot.DownloadTelegramFile(msg.Photo.Last().FileId);
                 }
-                else if (e.Message.Document is not null)
+                else if (msg.Document is not null)
                 {
-                    filePath = await TelegramBot.DownloadTelegramFile(e.Message.Document.FileId);
+                    filePath = await TelegramBot.DownloadTelegramFile(msg.Document.FileId);
                 }
-                else if (e.Message.Audio is not null)
+                else if (msg.Audio is not null)
                 {
-                    filePath = await TelegramBot.DownloadTelegramFile(e.Message.Audio.FileId);
+                    filePath = await TelegramBot.DownloadTelegramFile(msg.Audio.FileId);
                 }
-            } 
+            }
             catch
             {
                 embeds.Add(new EmbedBuilder()
@@ -279,13 +304,13 @@ namespace CSDiscordTelegramLink
 
             if (missingReply)
             {
-                var msg = await GetDiscordChannel()?.GetMessageAsync(id);
-                if (msg is not null)
+                var msg2 = await GetDiscordChannel()?.GetMessageAsync(id);
+                if (msg2 is not null)
                 {
-                    await msg.AddReactionAsync(new Emoji("⚠"));
+                    await msg2.AddReactionAsync(new Emoji("⚠"));
                 }
             }
-            ReplyManager.Add(e.Message.Chat.Id, e.Message.MessageId, id, DTMessage.DTOrigin.Telegram);
+            ReplyManager.Add(msg.Chat.Id, msg.MessageId, id, DTMessage.DTOrigin.Telegram);
         }
 
         private async Task OnMessage(string content)

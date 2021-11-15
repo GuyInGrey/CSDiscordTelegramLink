@@ -151,7 +151,9 @@ namespace CSDiscordTelegramLink
 
         public async Task Exit()
         {
+            TicketManager.Dispose();
             await DiscordClient.StopAsync();
+            DiscordClient.Dispose();
         }
 
         public async Task<string> Status()
@@ -173,6 +175,14 @@ namespace CSDiscordTelegramLink
 {linkText}
 ||------------------------------------------------------------------------------------||";
             return statusMessage;
+        }
+
+        public void ClearQueue()
+        {
+            foreach (var l in ActiveLinks)
+            {
+                l.ClearQueued();
+            }
         }
     }
 }

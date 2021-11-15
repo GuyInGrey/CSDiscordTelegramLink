@@ -56,6 +56,11 @@ namespace CSDiscordTelegramLink
                     Logger.Log("Forcing a crash.");
                     throw new Exception("Console-induced crash.");
                 }
+                else if (text == "clearqueue")
+                {
+                    bot.ClearQueue();
+                    Logger.Log("Cleared.");
+                }
                 else
                 {
                     Logger.Log("Unknown command. The only ones are `exit`, `status`, and `crash`.");
