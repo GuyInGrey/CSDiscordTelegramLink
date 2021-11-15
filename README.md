@@ -85,5 +85,5 @@ A C# linking bot between Telegram and Discord
   "content": "Insert the response content here",
   "attachment": "Insert the attachment URL here",
 }
-   * You can have either the content or the attachment, or both, but not neither. Both fields must be there, if you don't want one, leave the value blank (`""`).
 ```
+   * You can have either the content or the attachment, or both, but not neither. Both fields must be there, if you don't want one, leave the value blank (`""`).
