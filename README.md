@@ -62,7 +62,7 @@ A C# linking bot between Telegram and Discord
 4. Invite the telegram bot to the group you want to link.
 5. In Telegram, go to @BotFather. Run `/setjoingroups` and set it to `DISABLED` for your bot.
 6. Stop and restart the bot process.
-7. In the telegram group you want to link, run `/chatid@YourBotNameHere`.
+7. In the telegram group you want to link, run `/chatid`. Don't add `@botUsername`.
    * Note the returned ID. It may include a `-`, that should be included in your note.
 8. In your bot's `config.json`, there is a `links` array. In that array, insert the following object:
 ```json
