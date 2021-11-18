@@ -128,7 +128,7 @@ namespace CSDiscordTelegramLink
 
             var logPath = new DirectoryInfo("logs").GetFiles().OrderBy(p => p.CreationTime).ToArray()[^2].FullName;
 
-            await botTesting.SendFileAsync(logPath, "Crash detected, <@126481324017057792>");
+            await botTesting.SendFileAsync(logPath, "Crash detected!");
         }
 
         public void SetupTelegramBot()
